@@ -1,0 +1,12 @@
+{
+	"main": "index.html",
+	"preload": "preload.js",
+	"logo": "logo.png",
+	"features": [
+		{
+		  "code": "steam",
+		  "explain": "steam登录助手",
+		  "cmds": [ "测试", "Ping" ]
+		}
+	]
+}
