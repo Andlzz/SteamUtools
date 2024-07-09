@@ -105,14 +105,13 @@ class SteamService {
                 // 等待一段时间，确保Steam完全退出
                 setTimeout(() => {
                     // 然后，启动Steam进程
-                    exec(`"${steamPath}"`, (error, stdout, stderr) => {
-                        if (error) {
-                            reject(`exec error: ${error}\n${stderr}`);
-                            return;
-                        }
-                        resolve(stdout);
-                    });
-                }, 500); // 等待0.5秒
+                        exec(`"${steamPath}"`, (error, stdout, stderr) => {
+                            if (error) {
+                                reject(`exec error: ${error}\n${stderr}`);
+                            }
+                                resolve(stdout);
+                        });
+                }, 100); // 等待0.1秒
             });
         });
     }

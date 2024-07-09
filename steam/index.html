@@ -138,9 +138,16 @@
         const time = document.createElement('p');
         // 将时间戳转换为Date对象
         const date = new Date(user.Timestamp * 1000);
-
         // 格式化日期和时间为 yyyy-MM-dd hh:mm:ss
         time.textContent = date.toISOString().replace(/\.\d+Z$/, '').replace('T', ' ').slice(0, 19);
+
+        // 获取昵称
+        const Nickname = utools.dbStorage.getItem(user.AccountName)
+        if(Nickname != null || Nickname !== undefined){
+            const nickname = document.createElement('p');
+            account.textContent = Nickname;
+            cardBody.appendChild(nickname);
+        }
 
         // 创建按钮组
         const buttonGroup = document.createElement('div');
@@ -196,22 +203,78 @@
         }
 
         // 添加点击事件处理函数
-        button.onclick = async function() {
-            try {
-                // 调用传递给按钮的回调函数，并传入用户数据的特定属性
-                await callback(user.AccountName);
-            } catch (error) {
-                console.error('Error executing:', error);
+        button.onclick = async function(event) {
+            event.preventDefault(); // 阻止默认行为
+
+            // 特别处理昵称按钮的点击事件
+            if (text === '昵称') {
+                const nickname = prompt('请输入昵称：', user.AccountName); // 使用浏览器的prompt弹出输入框
+                if (nickname) {
+                    addNickname(user.AccountName, nickname); // 调用设置昵称的方法
+                }
+            } else {
+                try {
+                    // 调用传递给按钮的回调函数，并传入用户数据的特定属性
+                    await callback(user.AccountName);
+                } catch (error) {
+                    console.error('Error executing:', error);
+                }
             }
         };
 
         return button;
     }
 
+    // 设置昵称
+    function addNickname(accountName,nickname) {
+        utools.dbStorage.setItem(accountName,nickname)
+    }
+
+    // 为昵称按钮添加点击事件
+    function setupNicknameButton(user) {
+        const nicknameButton = document.querySelector(`button[data-tooltip='设置昵称']`);
+        nicknameButton.addEventListener('click', function() {
+            const modal = new bootstrap.Modal(document.getElementById('nicknameModal'));
+            // 将用户信息传递给模态框，这里使用自定义属性data-accountname
+            modal.element.dataset.accountname = user.AccountName;
+            modal.show();
+        });
+    }
+
+    // 确定按钮的点击事件
+    document.getElementById('saveNickname').addEventListener('click', function() {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('nicknameModal'));
+        const accountName = modal.element.dataset.accountname;
+        const nickname = document.getElementById('nicknameInput').value.trim();
+        if (nickname) {
+            addNickname(accountName, nickname);
+            modal.hide();
+        }
+    });
+
     // 页面加载完毕时获取用户数据并创建卡片
     fetchAndCreateUserCards();
     // window.services.steamService.executeExe('1977607896');
 </script>
-
+<!-- 昵称设置模态框 -->
+<div class="modal fade" id="nicknameModal" tabindex="-1" role="dialog" aria-labelledby="nicknameModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="nicknameModalLabel">设置昵称</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="text" class="form-control" id="nicknameInput" placeholder="请输入昵称" autofocus>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="saveNickname">确定</button>
+            </div>
+        </div>
+    </div>
+</div>
 </body>
 </html>
