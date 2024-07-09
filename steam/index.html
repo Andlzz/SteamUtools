@@ -2,46 +2,215 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Display Buttons with PersonaNames</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Styled User Cards with Spacing</title>
+    <!-- 引用Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- 引用Bootstrap Bundle JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding: 20px;
+        }
+
+        /* 自定义Tooltip样式 */
+        .tooltip.show .tooltip-inner {
+            background-color: #333; /* 深色背景 */
+            color: #fff; /* 白色文字 */
+            border-radius: 5px; /* 圆角边框 */
+            padding: 5px 10px; /* 内边距 */
+            opacity: 1; /* 如果Tooltip的透明度被设置为低于1的值，确保它是完全不透明的 */
+        }
+
+        .container {
+            padding: 0;
+        }
+
+        .user-card {
+            background-color: #ffffff;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            border: none;
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+        }
+
+        .user-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-body {
+            padding: 30px;
+        }
+
+        .button-group button {
+            width: 80px;
+            height: 40px;
+            border-radius: 25px;
+            font-size: 12px;
+            font-weight: bold;
+            margin: 5px; /* 四周外边距 */
+        }
+
+        /* 为卡片添加额外的间距 */
+        .user-card {
+            /*margin-left: 2rem;*/
+            /*margin-right: 2rem;*/
+            /*margin-top: 2rem;*/
+            margin: 2rem;
+        }
+
+        /* 使用Bootstrap的工具类来控制间距 */
+        .row.g-4 {
+            margin-left: -0.5rem;
+            margin-right: -0.5rem;
+        }
+
+        .row.g-4 > .col,
+        .row.g-4 > [class*=col-] {
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+        }
+
+    </style>
 </head>
 <body>
 
-<div id="button-container">
-    <!-- 按钮将被动态创建并插入到这里 -->
+<div class="container">
+    <div class="row g-8" id="user-cards-container">
+        <!-- 用户卡片将被动态创建并插入到这里 -->
+    </div>
 </div>
-
 <script>
-    // 定义一个异步函数来处理Promise
-    async function displayButtons() {
+    // 异步获取用户数据并创建卡片
+    async function fetchAndCreateUserCards() {
         try {
-            // 等待Promise解决
-            const users = await window.services.steamService.readLoginUsersVdf();
-            console.log("类型" + typeof(users) + " 内容" + users);
+            var users = utools.dbStorage.getItem('users')
+            console.log("自动",users)
+            if (users === null || users === undefined) {
+                users = await window.services.steamService.readLoginUsersVdf();
+                utools.dbStorage.setItem('users', users)
+                console.log("手动",users)
+            }
+            // 根据 Timestamp 字段对 users 进行倒序排序
+            users.sort((a, b) => {
+                // 将 Timestamp 字符串转换为数字
+                const timestampA = parseInt(a.Timestamp, 10);
+                const timestampB = parseInt(b.Timestamp, 10);
 
-            // 获取按钮容器
-            const buttonContainer = document.getElementById('button-container');
-
-            // 遍历用户数组，为每个用户创建一个按钮并添加到页面
-            users.forEach((user, index) => {
-                // 创建按钮元素
-                const button = document.createElement('button');
-                // 设置按钮文本为用户的PersonaName
-                button.textContent = user.PersonaName;
-                // 可以为按钮添加点击事件处理函数
-                button.addEventListener('click', () => {
-                    // todo 调用登录接口
-                    alert(`Clicked ${user.PersonaName}!`);
-                });
-                // 将按钮添加到容器中
-                buttonContainer.appendChild(button);
+                // 比较转换后的 Timestamp 值进行倒序排序
+                return timestampB - timestampA;
             });
+            createUserCards(users);
         } catch (error) {
-            console.error('Failed to display buttons:', error);
+            console.error('Failed to fetch user data:', error);
         }
     }
 
-    // 调用函数
-    displayButtons();
+    // 为用户数据创建卡片的函数
+    function createUserCards(users) {
+        const container = document.getElementById('user-cards-container');
+        users.forEach(user => {
+            const card = createCard(user);
+            container.appendChild(card);
+        });
+    }
+
+    // 创建单个卡片的函数
+    function createCard(user) {
+        const card = document.createElement('div');
+        card.className = 'user-card col-md-5';
+        const cardBody = document.createElement('div');
+        cardBody.className = 'card-body';
+
+        // 创建标题
+        const title = document.createElement('h5');
+        title.className = 'card-title';
+        title.textContent = user.PersonaName;
+
+        // 创建子内容
+        const nullValue = document.createElement('p');
+
+        const account = document.createElement('p');
+        account.textContent = user.AccountName;
+
+        const time = document.createElement('p');
+        // 将时间戳转换为Date对象
+        const date = new Date(user.Timestamp * 1000);
+
+        // 格式化日期和时间为 yyyy-MM-dd hh:mm:ss
+        time.textContent = date.toISOString().replace(/\.\d+Z$/, '').replace('T', ' ').slice(0, 19);
+
+        // 创建按钮组
+        const buttonGroup = document.createElement('div');
+        buttonGroup.className = 'button-group d-flex justify-content-center';
+
+        // 创建三个颜色的按钮，并为每个按钮添加点击事件处理函数
+        const buttons = [
+            {
+                text: '登录',
+                className: 'btn-primary',
+                tooltip: '在线登录steam',
+                callback: window.services.steamService.executeExe
+            },
+            {
+                text: '离线',
+                className: 'btn-secondary',
+                tooltip: '离线登录steam',
+                callback: window.services.steamService.executeExe
+            },
+            {
+                text: '昵称',
+                className: 'btn-warning',
+                tooltip: '设置昵称',
+                callback: window.services.steamService.executeExe
+            }
+        ];
+
+        buttons.forEach(buttonData => {
+            const button = createButton(buttonData.text, buttonData.className, buttonData.tooltip, user, buttonData.callback);
+            buttonGroup.appendChild(button);
+        });
+
+        cardBody.appendChild(title);
+        cardBody.appendChild(nullValue);
+        cardBody.appendChild(account);
+        cardBody.appendChild(time);
+        cardBody.appendChild(buttonGroup);
+        card.appendChild(cardBody);
+        return card;
+    }
+
+    // 创建按钮并添加点击事件的辅助函数
+    function createButton(text, className, tooltipText, user, callback) {
+        const button = document.createElement('button');
+        button.textContent = text;
+        button.className = `btn ${className}`;
+
+        // 初始化Tooltip
+        if (tooltipText) {
+            button.setAttribute('data-bs-toggle', 'tooltip');
+            button.setAttribute('data-bs-title', tooltipText);
+            button.setAttribute('title', tooltipText);
+        }
+
+        // 添加点击事件处理函数
+        button.onclick = async function() {
+            try {
+                // 调用传递给按钮的回调函数，并传入用户数据的特定属性
+                await callback(user.AccountName);
+            } catch (error) {
+                console.error('Error executing:', error);
+            }
+        };
+
+        return button;
+    }
+
+    // 页面加载完毕时获取用户数据并创建卡片
+    fetchAndCreateUserCards();
+    // window.services.steamService.executeExe('1977607896');
 </script>
 
 </body>

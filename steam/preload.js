@@ -1,26 +1,27 @@
 const Registry = require('winreg'); // 导入winreg模块中的Registry构造函数
 const fs = require('fs').promises;
+const {exec} = require('child_process');
 
 class SteamService {
     constructor() {
         this.steamPath = '';
     }
 
-    async getSteamPath() {
+    async getSteamValue(key) {
         try {
             const regKey = new Registry({
                 hive: Registry.HKCU, // 使用Registry.HKCU常量
                 key: '\\Software\\Valve\\Steam' // 注意路径字符串的书写
             });
             const result = await new Promise((resolve, reject) => {
-                regKey.get('SteamPath', (error, result) => {
+                regKey.get(key, (error, result) => {
                     if (error) {
                         reject(error);
                     } else {
                         resolve(result.value);
                     }
                 });
-            });
+            }); 
             this.steamPath = result
             return this.steamPath;
         } catch (error) {
@@ -28,8 +29,28 @@ class SteamService {
         }
     }
 
+    async setSteamValue(name, value) {
+        try {
+            const regKey = new Registry({
+                hive: Registry.HKCU, // 使用Registry.HKCU常量
+                key: '\\Software\\Valve\\Steam' // 注意路径字符串的书写
+            });
+            await new Promise((resolve, reject) => {
+                regKey.set(name, Registry.REG_SZ, value, (error) => {
+                    if (error) {
+                        reject(error);
+                    } else {
+                        resolve();
+                    }
+                });
+            });
+        } catch (error) {
+            console.log("寄" + error)
+        }
+    }
+
     async readLoginUsersVdf() {
-        const steamPath = await this.getSteamPath();
+        const steamPath = await this.getSteamValue('SteamPath');
         const vdfPath = `${steamPath}\\config\\loginusers.vdf`;
 
         try {
@@ -63,12 +84,37 @@ class SteamService {
                     });
                 }
             }
-            console.log(users)
             return users;
         } catch (error) {
             console.error('Failed to read the loginusers.vdf file:', error);
             throw error;
         }
+    }
+
+    async executeExe(username) {
+        // 修改当前登录用户
+        await this.setSteamValue('AutoLoginUser', username);
+        // 获取exe文件路径
+        const steamPath = await this.getSteamValue('SteamExe');
+        return new Promise((resolve, reject) => {
+            // 首先，尝试关闭Steam进程
+            exec('taskkill /F /IM steam.exe', (error, stdout, stderr) => {
+                if (error) {
+                    console.error(`Error killing Steam process: ${error}`);
+                }
+                // 等待一段时间，确保Steam完全退出
+                setTimeout(() => {
+                    // 然后，启动Steam进程
+                    exec(`"${steamPath}"`, (error, stdout, stderr) => {
+                        if (error) {
+                            reject(`exec error: ${error}\n${stderr}`);
+                            return;
+                        }
+                        resolve(stdout);
+                    });
+                }, 500); // 等待0.5秒
+            });
+        });
     }
 }
 
@@ -79,11 +125,20 @@ if (typeof window !== 'undefined' && !window.services) {
 
 window.services.steamService = {
     readLoginUsersVdf: async () => {
+        utools
         const steamService = new SteamService();
         try {
             return await steamService.readLoginUsersVdf();
         } catch (error) {
             console.error('Failed to read Steam login users VDF:', error);
+        }
+    },
+    executeExe: async (args) => {
+        const execService = new SteamService();
+        try {
+            return await execService.executeExe(args);
+        } catch (error) {
+            console.error('Failed to execute EXE:', error);
         }
     }
 };
