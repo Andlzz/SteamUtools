@@ -1,12 +1,18 @@
 {
-	"main": "index.html",
-	"preload": "preload.js",
-	"logo": "logo.png",
-	"features": [
-		{
-		  "code": "steam",
-		  "explain": "steam登录助手",
-		  "cmds": [ "测试", "Ping" ]
-		}
-	]
+  "main": "index.html",
+  "preload": "preload.js",
+  "logo": "logo.png",
+  "platform": ["win32"],
+  "features": [
+    {
+      "code": "steam",
+      "explain": "steam账号切换",
+      "cmds": [
+        "steam",
+        "steam账号切换",
+        "账号",
+        "切换"
+      ]
+    }
+  ]
 }
