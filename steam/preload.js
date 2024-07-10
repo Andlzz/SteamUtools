@@ -110,33 +110,29 @@ class SteamService {
     }
 
     /**
-     * 重新执行steam登录
-     * @param username 登录用户名 | 为null登录新用户
+     * 在线登录steam
+     * @param username 登录用户名
      * @returns {Promise<void>}
      */
-    async restartSteam(username) {
-        // 修改当前登录用户
-        await this.setSteamValue('AutoLoginUser', username, Registry.REG_SZ);
-        // 获取exe文件路径
-        const steamPath = await this.getSteamValue('SteamExe');
-        new Promise((resolve, reject) => {
-            // 首先，尝试关闭Steam进程
-            exec('taskkill /F /IM steam.exe', (error, stdout, stderr) => {
-                if (error) {
-                    console.error(`Error killing Steam process: ${error}`);
-                }
-                // 等待一段时间，确保Steam完全退出
-                setTimeout(() => {
-                    // 然后，启动Steam进程
-                    exec(`"${steamPath}"`, (error, stdout, stderr) => {
-                        if (error) {
-                            reject(`exec error: ${error}\n${stderr}`);
-                        }
-                        resolve(stdout);
-                    });
-                }, 100); // 等待0.1秒
-            });
-        });
+    async executeOnlineExe(username) {
+        await this.executeExe(username, true)
+    }
+
+    /**
+     * 离线登录steam
+     * @param username 登录用户名
+     * @returns {Promise<void>}
+     */
+    async executeOfflineExe(username) {
+        await this.executeExe(username, false)
+    }
+
+    /**
+     * 新账号登录
+     * @returns {Promise<void>}
+     */
+    async executeNewExe() {
+        await this.restartSteam("1")
     }
 
     /**
@@ -205,21 +201,34 @@ class SteamService {
     }
 
     /**
-     * 在线登录steam
-     * @param username 登录用户名
+     * 重新执行steam登录
+     * @param username 登录用户名 | 为null登录新用户
      * @returns {Promise<void>}
      */
-    async executeOnlineExe(username) {
-        await this.executeExe(username, true)
-    }
-
-    /**
-     * 离线登录steam
-     * @param username 登录用户名
-     * @returns {Promise<void>}
-     */
-    async executeOfflineExe(username) {
-        await this.executeExe(username, false)
+    async restartSteam(username) {
+        // 修改当前登录用户
+        await this.setSteamValue('AutoLoginUser', username, Registry.REG_SZ);
+        console.log("修改成功")
+        // 获取exe文件路径
+        const steamPath = await this.getSteamValue('SteamExe');
+        new Promise((resolve, reject) => {
+            // 首先，尝试关闭Steam进程
+            exec('taskkill /F /IM steam.exe', (error, stdout, stderr) => {
+                if (error) {
+                    console.error(`Error killing Steam process: ${error}`);
+                }
+                // 等待一段时间，确保Steam完全退出
+                setTimeout(() => {
+                    // 然后，启动Steam进程
+                    exec(`"${steamPath}"`, (error, stdout, stderr) => {
+                        if (error) {
+                            reject(`exec error: ${error}\n${stderr}`);
+                        }
+                        resolve(stdout);
+                    });
+                }, 100); // 等待0.1秒
+            });
+        });
     }
 }
 
@@ -228,8 +237,8 @@ if (typeof window !== 'undefined' && !window.services) {
 }
 
 /**
- * 挂载window
- * @type {{executeOnlineExe: ((function(*): Promise<void|undefined>)|*), executeOfflineExe: ((function(*): Promise<void|undefined>)|*), readLoginUsersVdf: ((function(): Promise<*[]|undefined>)|*)}}
+ * 挂载
+ * @type {{executeOnlineExe: ((function(*): Promise<void|undefined>)|*), executeOfflineExe: ((function(*): Promise<void|undefined>)|*), readLoginUsersVdf: ((function(): Promise<*[]|undefined>)|*), executeNewExe: ((function(): Promise<void|undefined>)|*)}}
  */
 window.services.steamService = {
     readLoginUsersVdf: async () => {
@@ -251,6 +260,14 @@ window.services.steamService = {
         const execService = new SteamService();
         try {
             return await execService.executeOfflineExe(username);
+        } catch (error) {
+            console.error('Failed to execute EXE:', error);
+        }
+    },
+    executeNewExe: async () => {
+        const execService = new SteamService();
+        try {
+            return await execService.executeNewExe();
         } catch (error) {
             console.error('Failed to execute EXE:', error);
         }

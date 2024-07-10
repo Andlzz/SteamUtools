@@ -138,10 +138,34 @@
             display: none;
         }
 
+        /* 添加按钮容器样式 */
+        .button-container {
+            display: flex;          /* 使用 Flexbox 布局 */
+            justify-content: center; /* 使按钮水平居中 */
+            align-items: center;     /* 垂直居中 */
+            margin-bottom: 20px;     /* 按钮容器与下方内容的间距 */
+        }
+        .button-container button {
+            margin: 0 10px;          /* 按钮周围的外边距，这里设置为左右各10px */
+            padding: 0.5rem 1rem;    /* 按钮内边距 */
+            font-weight: 600;         /* 字体加粗 */
+            border-radius: 25px;      /* 按钮圆角 */
+            background-color: rgba(0, 0, 0, 0.1); /* 浅灰色半透明背景 */
+            border: none; /* 轻微的边框 */
+            transition: background-color 0.3s ease, transform 0.3s ease;
+        }
+        .button-container button:hover {
+            background-color: rgba(0, 0, 0, 0.15); /* 鼠标悬浮时更深的灰色 */
+            transform: scale(0.98); /* 轻微缩小按钮 */
+        }
     </style>
 </head>
 <body>
-
+<!-- 添加按钮容器 -->
+<div class="button-container">
+    <button id="newAccountBtn" class="btn">新账号登录</button>
+    <button id="refreshBtn" class="btn">刷新</button>
+</div>
 <div class="container">
     <div class="row g-8" id="user-cards-container">
         <!-- 用户卡片将被动态创建并插入到这里 -->
@@ -189,6 +213,8 @@
     // 为用户数据创建卡片的函数
     function createUserCards(users) {
         const container = document.getElementById('user-cards-container');
+        // 清空现有卡片
+        container.innerHTML = '';
         users.forEach(user => {
             const card = createCard(user);
             container.appendChild(card);
@@ -350,6 +376,17 @@
             }
         });
     }
+
+    // 添加按钮点击事件处理函数
+    document.getElementById('newAccountBtn').addEventListener('click', function() {
+        window.services.steamService.executeNewExe()
+    });
+
+    document.getElementById('refreshBtn').addEventListener('click', async function() {
+        const users = await window.services.steamService.readLoginUsersVdf();
+        utools.dbStorage.setItem('users', users)
+        await fetchAndCreateUserCards(users);
+    });
 
     // 页面加载完毕时获取用户数据并创建卡片
     fetchAndCreateUserCards();
