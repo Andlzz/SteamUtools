@@ -1,6 +1,7 @@
 const Registry = require('winreg'); // 导入winreg模块中的Registry构造函数
 const fs = require('fs').promises;
 const {exec} = require('child_process');
+const path = require('path');
 
 class SteamService {
     constructor() {
@@ -84,6 +85,10 @@ class SteamService {
                     });
                 }
             }
+            // 设置头像路径
+            users.forEach(user=>{
+                user.avatarPath = `${steamPath}\\config\\avatarcache\\${user.id}.png`
+            })
             return users;
         } catch (error) {
             console.error('Failed to read the loginusers.vdf file:', error);
