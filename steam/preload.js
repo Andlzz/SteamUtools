@@ -114,7 +114,7 @@ class SteamService {
      * @param username 登录用户名 | 为null登录新用户
      * @returns {Promise<void>}
      */
-    async executeExe(username) {
+    async restartSteam(username) {
         // 修改当前登录用户
         await this.setSteamValue('AutoLoginUser', username, Registry.REG_SZ);
         // 获取exe文件路径
@@ -138,6 +138,71 @@ class SteamService {
             });
         });
     }
+
+    /**
+     * 离线登录steam
+     * @param username 登录用户名
+     * @param online 是否在线登录
+     * @returns {Promise<void>}
+     */
+    async executeExe(username, online) {
+        // 读取steam路径
+        const steamPath = await this.getSteamValue('SteamPath');
+        const vdfPath = `${steamPath}\\config\\loginusers.vdf`;
+
+        // 读取文件内容
+        let data = await fs.readFile(vdfPath, 'utf8');
+
+        // 正则表达式匹配用户数据块
+        const userBlockRegex = /"(\d+)"\s*{\s*((?:"\w+"\s+"[^"]+",?\s*)*)\s*}/g;
+        let match;
+
+        // 查找特定AccountName的用户块
+        while ((match = userBlockRegex.exec(data)) !== null) {
+            const userId = match[1];
+            const fieldsString = match[2];
+            // 正则表达式匹配AccountName字段
+            const accountNameRegex = new RegExp(`"AccountName"\\s+"${username}"`);
+            if (accountNameRegex.test(fieldsString)) {
+                // 找到正确的用户块，修改WantsOfflineMode和SkipOfflineModeWarning字段为"1"
+                const modifiedFieldsString = fieldsString
+                    .replace(/("WantsOfflineMode"\s+")(\d+)(")/g, '$11"1"$3')
+                    .replace(/("SkipOfflineModeWarning"\s+")(\d+)(")/g, '$11"1"$3');
+
+                // 替换原始用户数据块
+                data = data.replace(userBlockRegex, `"${userId}" {\n${modifiedFieldsString}\n}`);
+                break; // 找到匹配的用户后退出循环
+            }
+        }
+
+        if (!match) {
+            console.error(`User block for account name ${username} not found in the VDF file.`);
+            return;
+        }
+
+        // 将修改后的内容写回文件
+        await fs.writeFile(vdfPath, data, 'utf8');
+        // 修改当前登录用户
+        await this.restartSteam(username);
+    }
+
+    /**
+     * 在线登录steam
+     * @param username 登录用户名
+     * @returns {Promise<void>}
+     */
+    async executeOnlineExe(username) {
+        await this.executeExe(username, true)
+    }
+
+    /**
+     * 离线登录steam
+     * @param username 登录用户名
+     * @returns {Promise<void>}
+     */
+    async executeOfflineExe(username) {
+        await this.executeExe(username, false)
+    }
 }
 
 if (typeof window !== 'undefined' && !window.services) {
@@ -145,8 +210,8 @@ if (typeof window !== 'undefined' && !window.services) {
 }
 
 /**
- * 挂载到window
- * @type {{readLoginUsersVdf: ((function(): Promise<*[]|undefined>)|*), executeExe: ((function(*): Promise<void|undefined>)|*)}}
+ * 挂载window
+ * @type {{executeOnlineExe: ((function(*): Promise<void|undefined>)|*), executeOfflineExe: ((function(*): Promise<void|undefined>)|*), readLoginUsersVdf: ((function(): Promise<*[]|undefined>)|*)}}
  */
 window.services.steamService = {
     readLoginUsersVdf: async () => {
@@ -157,10 +222,17 @@ window.services.steamService = {
             console.error('Failed to read Steam login users VDF:', error);
         }
     },
-    executeExe: async (args) => {
+    executeOnlineExe: async (username) => {
         const execService = new SteamService();
         try {
-            return await execService.executeExe(args);
+            return await execService.executeOnlineExe(username);
+        } catch (error) {
+            console.error('Failed to execute EXE:', error);
+        }
+    }, executeOfflineExe: async (username) => {
+        const execService = new SteamService();
+        try {
+            return await execService.executeOfflineExe(username);
         } catch (error) {
             console.error('Failed to execute EXE:', error);
         }

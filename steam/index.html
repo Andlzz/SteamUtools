@@ -167,11 +167,9 @@
     async function fetchAndCreateUserCards() {
         try {
             var users = utools.dbStorage.getItem('users')
-            console.log("自动", users)
             if (users === null || users === undefined) {
                 users = await window.services.steamService.readLoginUsersVdf();
                 utools.dbStorage.setItem('users', users)
-                console.log("手动", users)
             }
             // 根据 Timestamp 字段对 users 进行倒序排序
             users.sort((a, b) => {
@@ -236,19 +234,19 @@
                 text: '登录',
                 className: 'btn-primary',
                 tooltip: '在线登录steam',
-                callback: window.services.steamService.executeExe
+                callback: window.services.steamService.executeOnlineExe
             },
             {
                 text: '离线',
                 className: 'btn-secondary',
                 tooltip: '离线登录steam',
-                callback: window.services.steamService.executeExe
+                callback: window.services.steamService.executeOfflineExe
             },
             {
                 text: '昵称',
                 className: 'btn-warning',
                 tooltip: '设置昵称',
-                callback: window.services.steamService.executeExe
+                callback: ''
             }
         ];
 
@@ -305,7 +303,12 @@
             };
         } else {
             button.onclick = async function (event) {
-                // ... 其他按钮的逻辑 ...
+                try {
+                    // 调用传递给按钮的回调函数，并传入用户数据的特定属性
+                    await callback(user.AccountName);
+                } catch (error) {
+                    console.error('Error executing:', error);
+                }
             };
         }
 
