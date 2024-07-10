@@ -156,7 +156,8 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary rounded" data-bs-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-primary rounded" id="saveNickname">确定</button>
+                <button type="button" class="btn btn-primary rounded" id="saveNickname" data-bs-dismiss="modal">确定
+                </button>
             </div>
         </div>
     </div>
@@ -204,13 +205,13 @@
         cardBody.className = 'card-body';
 
         // 创建标题
-        const   title = document.createElement('h5');
+        const title = document.createElement('h5');
         title.className = 'card-title';
         title.textContent = user.PersonaName;
         // 获取昵称
         const Nickname = utools.dbStorage.getItem(user.AccountName)
         if (Nickname) {
-            title.textContent = user.PersonaName+"("+Nickname+")";
+            title.textContent = user.PersonaName + " (" + Nickname + ")";
         }
 
         // 创建子内容
@@ -264,7 +265,7 @@
         avatar.style.margin = '0 0 10px 10px'; // 设置头像图片的外边距
 
         // 为头像设置onerror事件处理函数
-        avatar.onerror = function() {
+        avatar.onerror = function () {
             // 如果图片加载失败，将头像元素从其父元素中移除
             this.remove();
         };
@@ -291,18 +292,19 @@
 
         // 为昵称按钮添加特殊逻辑
         if (text === '昵称') {
-            button.onclick = function(event) {
+            button.onclick = function (event) {
                 event.preventDefault();
                 const nicknameModal = document.getElementById('nicknameModal');
                 const nicknameInput = nicknameModal.querySelector('#nicknameInput');
                 nicknameInput.value = ''; // 清空输入框
                 nicknameInput.dataset.accountname = user.AccountName; // 存储AccountName
+                nicknameInput.dataset.personaName = user.PersonaName; // 存储PersonaName
 
                 // 显示模态框
                 new bootstrap.Modal(nicknameModal).show();
             };
         } else {
-            button.onclick = async function(event) {
+            button.onclick = async function (event) {
                 // ... 其他按钮的逻辑 ...
             };
         }
@@ -311,28 +313,39 @@
     }
 
     // 为模态框确定按钮添加事件
-    document.getElementById('saveNickname').addEventListener('click', function() {
+    document.getElementById('saveNickname').addEventListener('click', function () {
         const nicknameInput = document.getElementById('nicknameInput');
         const accountName = nicknameInput.dataset.accountname;
+        const personaName = nicknameInput.dataset.personaName;
         const nickname = nicknameInput.value.trim();
         if (nickname) {
-            addNickname(accountName, nickname); // 调用设置昵称的方法
+            addNickname(accountName, nickname, personaName); // 调用设置昵称的方法
         }
         // 隐藏模态框
         document.getElementById('nicknameModal').querySelector('.close').click();
     });
 
-    // 确保Tooltip在按钮上正确初始化
-    document.addEventListener('DOMContentLoaded', function() {
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl);
-        });
-    });
-
     // 设置昵称
-    function addNickname(accountName, nickname) {
-        utools.dbStorage.setItem(accountName, nickname)
+    function addNickname(accountName, nickname, personaName) {
+        // 存储昵称到数据库
+        utools.dbStorage.setItem(accountName, nickname);
+
+        // 获取所有用户卡片
+        var cards = document.querySelectorAll('.user-card');
+        console.log(cards)
+
+        // 遍历所有卡片，找到匹配 accountName 的卡片并更新标题
+        cards.forEach(function (card) {
+            var title = card.querySelector('.card-title');
+            var account = card.querySelectorAll('p')[1].textContent; // 假设第一个 <p> 元素是账号名
+            console.log(accountName)
+            console.log(account)
+            if (account === accountName) {
+                // 更新标题，添加昵称
+                title.textContent = personaName + " (" + nickname + ")";
+                console.log(title.textContent)
+            }
+        });
     }
 
     // 页面加载完毕时获取用户数据并创建卡片
