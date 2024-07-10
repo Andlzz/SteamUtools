@@ -247,8 +247,9 @@
         const time = document.createElement('p');
         // 将时间戳转换为Date对象
         const date = new Date(user.Timestamp * 1000);
-        // 格式化日期和时间为 yyyy-MM-dd hh:mm:ss
-        time.textContent = date.toISOString().replace(/\.\d+Z$/, '').replace('T', ' ').slice(0, 19);
+        // 格式化日期和时间为 yyyy-MM-dd hh:mm:ss，考虑本地时区
+        const localDateTime = date.toLocaleString();
+        time.textContent = localDateTime.replace(/\//g, '-');
 
         // 创建按钮组
         const buttonGroup = document.createElement('div');
