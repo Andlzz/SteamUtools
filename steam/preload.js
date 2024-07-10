@@ -1,20 +1,24 @@
 const Registry = require('winreg'); // 导入winreg模块中的Registry构造函数
 const fs = require('fs').promises;
 const {exec} = require('child_process');
-const path = require('path');
 
+/**
+ * steam方法
+ */
 class SteamService {
-    constructor() {
-        this.steamPath = '';
-    }
 
+    /**
+     * 获取注册表中值 | 固定注册表路径为steam
+     * @param key steam下Key
+     * @returns {Promise<string>} 注册表value
+     */
     async getSteamValue(key) {
         try {
             const regKey = new Registry({
                 hive: Registry.HKCU, // 使用Registry.HKCU常量
                 key: '\\Software\\Valve\\Steam' // 注意路径字符串的书写
             });
-            const result = await new Promise((resolve, reject) => {
+            return await new Promise((resolve, reject) => {
                 regKey.get(key, (error, result) => {
                     if (error) {
                         reject(error);
@@ -22,22 +26,27 @@ class SteamService {
                         resolve(result.value);
                     }
                 });
-            }); 
-            this.steamPath = result
-            return this.steamPath;
+            });
         } catch (error) {
             console.log("寄" + error)
         }
     }
 
-    async setSteamValue(name, value) {
+    /**
+     * 设置注册表值 | 固定注册表路径为steam
+     * @param name 注册表Key
+     * @param value 写入值
+     * @param valueType 写入类型
+     * @returns {Promise<void>}
+     */
+    async setSteamValue(name, value, valueType) {
         try {
             const regKey = new Registry({
                 hive: Registry.HKCU, // 使用Registry.HKCU常量
                 key: '\\Software\\Valve\\Steam' // 注意路径字符串的书写
             });
             await new Promise((resolve, reject) => {
-                regKey.set(name, Registry.REG_SZ, value, (error) => {
+                regKey.set(name, valueType, value, (error) => {
                     if (error) {
                         reject(error);
                     } else {
@@ -50,6 +59,10 @@ class SteamService {
         }
     }
 
+    /**
+     * 读取steam登录用户信息
+     * @returns {Promise<*[]>} user列表
+     */
     async readLoginUsersVdf() {
         const steamPath = await this.getSteamValue('SteamPath');
         const vdfPath = `${steamPath}\\config\\loginusers.vdf`;
@@ -86,7 +99,7 @@ class SteamService {
                 }
             }
             // 设置头像路径
-            users.forEach(user=>{
+            users.forEach(user => {
                 user.avatarPath = `${steamPath}\\config\\avatarcache\\${user.id}.png`
             })
             return users;
@@ -96,12 +109,17 @@ class SteamService {
         }
     }
 
+    /**
+     * 重新执行steam登录
+     * @param username 登录用户名 | 为null登录新用户
+     * @returns {Promise<void>}
+     */
     async executeExe(username) {
         // 修改当前登录用户
-        await this.setSteamValue('AutoLoginUser', username);
+        await this.setSteamValue('AutoLoginUser', username, Registry.REG_SZ);
         // 获取exe文件路径
         const steamPath = await this.getSteamValue('SteamExe');
-        return new Promise((resolve, reject) => {
+        new Promise((resolve, reject) => {
             // 首先，尝试关闭Steam进程
             exec('taskkill /F /IM steam.exe', (error, stdout, stderr) => {
                 if (error) {
@@ -110,26 +128,28 @@ class SteamService {
                 // 等待一段时间，确保Steam完全退出
                 setTimeout(() => {
                     // 然后，启动Steam进程
-                        exec(`"${steamPath}"`, (error, stdout, stderr) => {
-                            if (error) {
-                                reject(`exec error: ${error}\n${stderr}`);
-                            }
-                                resolve(stdout);
-                        });
+                    exec(`"${steamPath}"`, (error, stdout, stderr) => {
+                        if (error) {
+                            reject(`exec error: ${error}\n${stderr}`);
+                        }
+                        resolve(stdout);
+                    });
                 }, 100); // 等待0.1秒
             });
         });
     }
 }
 
-// 请确保您的环境支持window.services，例如Electron或浏览器环境
 if (typeof window !== 'undefined' && !window.services) {
     window.services = {};
 }
 
+/**
+ * 挂载到window
+ * @type {{readLoginUsersVdf: ((function(): Promise<*[]|undefined>)|*), executeExe: ((function(*): Promise<void|undefined>)|*)}}
+ */
 window.services.steamService = {
     readLoginUsersVdf: async () => {
-        utools
         const steamService = new SteamService();
         try {
             return await steamService.readLoginUsersVdf();
