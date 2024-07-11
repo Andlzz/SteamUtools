@@ -80,7 +80,7 @@ class SteamService {
                 const fieldsString = match[2];
 
                 // 正则表达式匹配字段名和值
-                const fieldRegex = /"(\w+)"\s+"(\w+)"/g;
+                const fieldRegex = /"(\w+)"\s+"([^"]*)"/g;
                 let fieldMatch;
                 const currentUser = {};
 
