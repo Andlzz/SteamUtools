@@ -230,6 +230,58 @@ class SteamService {
             });
         });
     }
+
+    /**
+     * 更新plugin.json文件中的cmds数组
+     * @param {string[]} cmdsArray 需要写入的cmds数组
+     * @returns {Promise<void>} 更新操作的结果
+     */
+    async updateCmds(cmdsArray) {
+        try {
+            let feature = await this.getFeature()
+            utools.setFeature(feature)
+        } catch (error) {
+            console.error('Failed to update plugin.json:', error);
+        }
+    }
+
+    /**
+     * 获取feature
+     * @returns {Promise<JSON>} 返回包含特定键和动态cmds数组的Promise包裹的JSON对象
+     */
+    async getFeature() {
+        try {
+            // 定义固定的对象结构
+            let featureObj = {
+                "code": "steam",
+                "explain": "steam账号切换",
+                "cmds": [
+                    "steam",
+                    "steam账号切换",
+                    "账号",
+                    "切换"
+                ] // 初始化数组
+            };
+
+            const users = await utools.dbStorage.getItem('users');
+            if (!users) {
+                return featureObj
+            }
+            users.forEach(user => {
+                featureObj.cmds.push(user.AccountName);
+                // 尝试获取昵称，如果存在则加入cmds
+                const nickName = utools.dbStorage.getItem(user.AccountName);
+                if (nickName) {
+                    featureObj.cmds.push(nickName);
+                }
+            });
+
+            return featureObj; // 返回包含动态cmds数组的JSON对象
+        } catch (error) {
+            console.error('Failed to get cmds:', error);
+            throw error; // 抛出错误，以便调用者可以处理
+        }
+    }
 }
 
 if (typeof window !== 'undefined' && !window.services) {
@@ -238,7 +290,7 @@ if (typeof window !== 'undefined' && !window.services) {
 
 /**
  * 挂载
- * @type {{executeOnlineExe: ((function(*): Promise<void|undefined>)|*), executeOfflineExe: ((function(*): Promise<void|undefined>)|*), readLoginUsersVdf: ((function(): Promise<*[]|undefined>)|*), executeNewExe: ((function(): Promise<void|undefined>)|*)}}
+ * @type {{executeOnlineExe: ((function(*): Promise<void|undefined>)|*), executeOfflineExe: ((function(*): Promise<void|undefined>)|*), readLoginUsersVdf: ((function(): Promise<*[]|undefined>)|*), updateCmds: ((function(*): Promise<void|undefined>)|*), executeNewExe: ((function(): Promise<void|undefined>)|*)}}
  */
 window.services.steamService = {
     readLoginUsersVdf: async () => {
@@ -271,5 +323,13 @@ window.services.steamService = {
         } catch (error) {
             console.error('Failed to execute EXE:', error);
         }
-    }
+    },
+    updateCmds: async (cmdsArray) => {
+        const execService = new SteamService();
+        try {
+            return await execService.updateCmds(cmdsArray);
+        } catch (error) {
+            console.error('Failed to execute EXE:', error);
+        }
+    },
 };

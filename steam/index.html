@@ -191,7 +191,7 @@
     async function fetchAndCreateUserCards() {
         try {
             var users = utools.dbStorage.getItem('users')
-            if (users === null || users === undefined) {
+            if (!users) {
                 users = await window.services.steamService.readLoginUsersVdf();
                 utools.dbStorage.setItem('users', users)
             }
@@ -204,6 +204,19 @@
                 // 比较转换后的 Timestamp 值进行倒序排序
                 return timestampB - timestampA;
             });
+            utools.onPluginEnter(({code, type, payload, option}) => {
+                console.log(typeof users)
+                users.forEach(item=>{
+                    if(item.AccountName === payload){
+                        window.services.steamService.executeOnlineExe(payload);
+                    }else{
+                        const nickName = utools.dbStorage.getItem(item.AccountName)
+                        if(nickName && nickName === payload){
+                            window.services.steamService.executeOnlineExe(item.AccountName);
+                        }
+                    }
+                })
+            })
             createUserCards(users);
         } catch (error) {
             console.error('Failed to fetch user data:', error);
@@ -369,8 +382,6 @@
         cards.forEach(function (card) {
             var title = card.querySelector('.card-title');
             var account = card.querySelectorAll('p')[1].textContent; // 假设第一个 <p> 元素是账号名
-            console.log(accountName)
-            console.log(account)
             if (account === accountName) {
                 // 更新标题，添加昵称
                 title.textContent = personaName + " (" + nickname + ")";
@@ -386,6 +397,7 @@
 
     document.getElementById('refreshBtn').addEventListener('click', async function() {
         const users = await window.services.steamService.readLoginUsersVdf();
+        await window.services.steamService.updateCmds();
         utools.dbStorage.setItem('users', users)
         await fetchAndCreateUserCards(users);
     });
