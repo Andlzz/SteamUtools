@@ -292,7 +292,8 @@
         // 为头像设置onerror事件处理函数
         avatar.onerror = function () {
             // 如果图片加载失败，将头像元素从其父元素中移除
-            this.remove();
+            avatar.src = './img/default.jpg'
+            // this.remove();
         };
 
         cardBody.appendChild(title);
