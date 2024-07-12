@@ -232,11 +232,10 @@ class SteamService {
     }
 
     /**
-     * 更新plugin.json文件中的cmds数组
-     * @param {string[]} cmdsArray 需要写入的cmds数组
+     * 更新plugin.json文件中的feature对象
      * @returns {Promise<void>} 更新操作的结果
      */
-    async updateCmds(cmdsArray) {
+    async updateFeature() {
         try {
             let feature = await this.getFeature()
             utools.setFeature(feature)
@@ -269,6 +268,7 @@ class SteamService {
             }
             users.forEach(user => {
                 featureObj.cmds.push(user.AccountName);
+                featureObj.cmds.push(user.PersonaName);
                 // 尝试获取昵称，如果存在则加入cmds
                 const nickName = utools.dbStorage.getItem(user.AccountName);
                 if (nickName) {
@@ -290,7 +290,7 @@ if (typeof window !== 'undefined' && !window.services) {
 
 /**
  * 挂载
- * @type {{executeOnlineExe: ((function(*): Promise<void|undefined>)|*), executeOfflineExe: ((function(*): Promise<void|undefined>)|*), readLoginUsersVdf: ((function(): Promise<*[]|undefined>)|*), updateCmds: ((function(*): Promise<void|undefined>)|*), executeNewExe: ((function(): Promise<void|undefined>)|*)}}
+ * @type {{executeOnlineExe: ((function(*): Promise<void|undefined>)|*), executeOfflineExe: ((function(*): Promise<void|undefined>)|*), updateFeature: ((function(): Promise<void|undefined>)|*), readLoginUsersVdf: ((function(): Promise<*[]|undefined>)|*), restartSteam: ((function(*): Promise<void|undefined>)|*), executeNewExe: ((function(): Promise<void|undefined>)|*)}}
  */
 window.services.steamService = {
     readLoginUsersVdf: async () => {
@@ -324,10 +324,18 @@ window.services.steamService = {
             console.error('Failed to execute EXE:', error);
         }
     },
-    updateCmds: async (cmdsArray) => {
+    updateFeature: async () => {
         const execService = new SteamService();
         try {
-            return await execService.updateCmds(cmdsArray);
+            return await execService.updateFeature();
+        } catch (error) {
+            console.error('Failed to execute EXE:', error);
+        }
+    },
+    restartSteam: async (username) => {
+        const execService = new SteamService();
+        try {
+            return await execService.restartSteam(username);
         } catch (error) {
             console.error('Failed to execute EXE:', error);
         }

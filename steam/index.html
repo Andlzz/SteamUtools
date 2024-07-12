@@ -208,11 +208,13 @@
                 console.log(typeof users)
                 users.forEach(item=>{
                     if(item.AccountName === payload){
-                        window.services.steamService.executeOnlineExe(payload);
-                    }else{
+                        window.services.steamService.restartSteam(item.AccountName);
+                    }else if(item.PersonaName === payload){
+                        window.services.steamService.restartSteam(item.AccountName);
+                    } else{
                         const nickName = utools.dbStorage.getItem(item.AccountName)
                         if(nickName && nickName === payload){
-                            window.services.steamService.executeOnlineExe(item.AccountName);
+                            window.services.steamService.restartSteam(item.AccountName);
                         }
                     }
                 })
@@ -397,7 +399,7 @@
 
     document.getElementById('refreshBtn').addEventListener('click', async function() {
         const users = await window.services.steamService.readLoginUsersVdf();
-        await window.services.steamService.updateCmds();
+        await window.services.steamService.updateFeature();
         utools.dbStorage.setItem('users', users)
         await fetchAndCreateUserCards(users);
     });
