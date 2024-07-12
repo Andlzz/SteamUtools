@@ -376,6 +376,8 @@
         // 存储昵称到数据库
         utools.dbStorage.setItem(accountName, nickname);
 
+        window.services.steamService.updateFeature();
+
         // 获取所有用户卡片
         var cards = document.querySelectorAll('.user-card');
         console.log(cards)
